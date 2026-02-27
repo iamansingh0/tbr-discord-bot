@@ -71,6 +71,11 @@ const commands = [
                 name: 'random',
                 description: 'Pick a random book from your TBR',
             },
+            {
+                type: 1,
+                name: 'stats',
+                description: 'View your reading statistics',
+            },
         ],
     },
 ];

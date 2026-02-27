@@ -203,5 +203,96 @@ module.exports = {
                 }
             );
         }
+
+        if (subcommand === 'stats') {
+            await interaction.deferReply({ flags: 64 });
+
+            try {
+                const rows = await new Promise((resolve, reject) => {
+                    db.all(
+                        `SELECT status FROM books WHERE user_id = ?`,
+                        [userId],
+                        (err, rows) => {
+                            if (err) reject(err);
+                            else resolve(rows);
+                        }
+                    );
+                });
+
+                if (!rows.length) {
+                    return interaction.editReply('📚 No books yet to analyze!');
+                }
+
+                const total = rows.length;
+
+                const counts = {
+                    reading: 0,
+                    not_started: 0,
+                    paused: 0,
+                    completed: 0,
+                };
+
+                rows.forEach((row) => {
+                    if (counts[row.status] !== undefined) {
+                        counts[row.status]++;
+                    }
+                });
+
+                const completionRate = Math.round(
+                    (counts.completed / total) * 100
+                );
+
+                const progressBar = (percent) => {
+                    const totalBlocks = 12;
+                    const filled = Math.round((percent / 100) * totalBlocks);
+                    const empty = totalBlocks - filled;
+
+                    return '🟩'.repeat(filled) + '⬜'.repeat(empty);
+                };
+
+                let insight = '';
+
+                if (completionRate === 0) {
+                    insight = '📖 Time to finish your first book!';
+                } else if (completionRate < 50) {
+                    insight = '⚡ You’re warming up!';
+                } else if (completionRate < 80) {
+                    insight = '🔥 Strong reading energy!';
+                } else {
+                    insight = '🏆 Elite reader status!';
+                }
+
+                const getColor = (percent) => {
+                    if (percent < 30) return 0xe74c3c;   // red
+                    if (percent < 60) return 0xf1c40f;   // yellow
+                    return 0x2ecc71;                     // green
+                };
+                const embed = new EmbedBuilder()
+                    .setColor(getColor(completionRate))
+                    .setTitle('📊 Your Reading Stats')
+                    .setDescription(
+                        `**Overview**
+                        📚 Total Books: **${total}**
+
+                        **Breakdown**
+                        🟢 Reading: **${counts.reading}**
+                        🟡 Not Started: **${counts.not_started}**
+                        🔵 Paused: **${counts.paused}**
+                        🏆 Completed: **${counts.completed}**
+
+                        **Progress**
+                        ${progressBar(completionRate)}  **${completionRate}%**
+                        \n${insight}
+                        `
+                    )
+                    .setTimestamp();
+
+                return interaction.editReply({ embeds: [embed] });
+
+            } catch (err) {
+                console.error(err);
+                return interaction.editReply('❌ Failed to calculate stats.');
+            }
+        }
     },
 };
