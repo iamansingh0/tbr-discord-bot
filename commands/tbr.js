@@ -53,6 +53,7 @@ module.exports = {
                     return interaction.editReply('📚 Your TBR is empty!');
                 }
 
+                // Group container
                 const groups = {
                     reading: [],
                     not_started: [],
@@ -60,33 +61,43 @@ module.exports = {
                     completed: [],
                 };
 
+                // Global numbering (important for remove/status consistency)
                 rows.forEach((book, index) => {
                     const padded = String(index + 1).padStart(2, '0');
+
                     const tagDisplay = book.tags
                         ? `  •  🏷️ ${book.tags.split(',').join(', ')}`
                         : '';
 
-                    groups[book.status]?.push(
-                        `${padded}.  ${book.title}${tagDisplay}`
-                    );
+                    groups[book.status]?.push({
+                        number: padded,
+                        title: book.title,
+                        tags: tagDisplay
+                    });
                 });
 
-                const buildSection = (emoji, title, books) => {
-                    if (!books.length) return '';
+                // Fixed section priority
+                const sectionOrder = [
+                    { key: 'reading', emoji: '🟢', label: 'Reading' },
+                    { key: 'not_started', emoji: '🟡', label: 'Not Started' },
+                    { key: 'paused', emoji: '🔵', label: 'Paused' },
+                    { key: 'completed', emoji: '🏆', label: 'Completed' },
+                ];
 
-                    return (
-                        `\n${emoji}  **${title}**\n` +
-                        `\n` + // extra space after header
-                        books.map((b) => `      ${b}`).join('\n') +
-                        `\n\n` // extra space between sections
-                    );
-                };
+                let description = '';
 
-                const description =
-                    buildSection('🟢', 'Reading', groups.reading) +
-                    buildSection('🟡', 'Not Started', groups.not_started) +
-                    buildSection('🔵', 'Paused', groups.paused) +
-                    buildSection('🏆', 'Completed', groups.completed);
+                sectionOrder.forEach(section => {
+                    const books = groups[section.key];
+                    if (!books.length) return;
+
+                    description += `\n${section.emoji}  **${section.label}**\n\n`;
+
+                    books.forEach(book => {
+                        description += `      ${book.number}.  ${book.title}${book.tags}\n`;
+                    });
+
+                    description += '\n';
+                });
 
                 const embed = new EmbedBuilder()
                     .setColor(0x9b59b6)
