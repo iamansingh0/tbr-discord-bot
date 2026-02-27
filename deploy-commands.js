@@ -21,6 +21,12 @@ const commands = [
                         description: 'Book title',
                         required: true,
                     },
+                    {
+                        type: 3,
+                        name: 'tags',
+                        description: 'Comma-separated tags (optional)',
+                        required: false,
+                    },
                 ],
             },
             {
@@ -69,12 +75,26 @@ const commands = [
             {
                 type: 1,
                 name: 'random',
-                description: 'Pick a random book from your TBR',
+                description: 'Pick a random book',
+                options: [
+                    {
+                        type: 3,
+                        name: 'tag',
+                        description: 'Filter by tag (optional)',
+                        required: false,
+                        autocomplete: true,
+                    },
+                ],
             },
             {
                 type: 1,
                 name: 'stats',
                 description: 'View your reading statistics',
+            },
+            {
+                type: 1,
+                name: 'tags',
+                description: 'View all your used tags',
             },
         ],
     },

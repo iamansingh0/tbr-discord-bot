@@ -10,12 +10,19 @@ module.exports = {
 
         if (subcommand === 'add') {
             const title = interaction.options.getString('title');
+            const tagsInput = interaction.options.getString('tags') || '';
+
+            const normalizedTags = tagsInput
+                .split(',')
+                .map(t => t.trim().toLowerCase())
+                .filter(Boolean)
+                .join(',');
 
             await interaction.deferReply({ flags: 64 });
 
             db.run(
-                `INSERT INTO books (user_id, title) VALUES (?, ?)`,
-                [userId, title],
+                `INSERT INTO books (user_id, title, tags) VALUES (?, ?, ?)`,
+                [userId, title, normalizedTags],
                 function (err) {
                     if (err) {
                         console.error(err);
@@ -55,7 +62,13 @@ module.exports = {
 
                 rows.forEach((book, index) => {
                     const padded = String(index + 1).padStart(2, '0');
-                    groups[book.status]?.push(`\` ${padded} \`  ${book.title}`);
+                    const tagDisplay = book.tags
+                        ? `  •  🏷️ ${book.tags.split(',').join(', ')}`
+                        : '';
+
+                    groups[book.status]?.push(
+                        `${padded}.  ${book.title}${tagDisplay}`
+                    );
                 });
 
                 const buildSection = (emoji, title, books) => {
@@ -168,40 +181,64 @@ module.exports = {
         if (subcommand === 'random') {
             await interaction.deferReply({ flags: 64 });
 
-            db.all(
-                `SELECT * FROM books WHERE user_id = ?`,
-                [userId],
-                (err, rows) => {
-                    if (err) {
-                        console.error(err);
-                        return interaction.editReply('❌ Error fetching your TBR.');
-                    }
+            try {
+                const tagFilter = interaction.options.getString('tag');
 
-                    if (rows.length === 0) {
-                        return interaction.editReply('📚 Your TBR is empty!');
-                    }
+                let query = `SELECT * FROM books WHERE user_id = ?`;
+                let params = [userId];
 
-                    const randomBook = rows[Math.floor(Math.random() * rows.length)];
-
-                    const statusEmoji = {
-                        not_started: '🟡',
-                        reading: '🟢',
-                        completed: '🏆',
-                        paused: '🔵',
-                    };
-
-                    const embed = new EmbedBuilder()
-                        .setColor(0xf39c12)
-                        .setTitle('🎲 Random Pick')
-                        .setDescription(
-                            `${statusEmoji[randomBook.status] || '📘'} **${randomBook.title}**`
-                        )
-                        .setFooter({ text: 'Trust the algorithm 👀' })
-                        .setTimestamp();
-
-                    return interaction.editReply({ embeds: [embed] });
+                if (tagFilter) {
+                    query += ` AND tags LIKE ?`;
+                    params.push(`%${tagFilter.toLowerCase()}%`);
                 }
-            );
+
+                const rows = await new Promise((resolve, reject) => {
+                    db.all(query, params, (err, rows) => {
+                        if (err) reject(err);
+                        else resolve(rows);
+                    });
+                });
+
+                if (!rows.length) {
+                    return interaction.editReply(
+                        tagFilter
+                            ? `📚 No books found with tag: **${tagFilter}**`
+                            : '📚 Your TBR is empty!'
+                    );
+                }
+
+                const randomBook = rows[Math.floor(Math.random() * rows.length)];
+
+                const statusEmoji = {
+                    not_started: '🟡',
+                    reading: '🟢',
+                    completed: '🏆',
+                    paused: '🔵',
+                };
+
+                const tagDisplay = randomBook.tags
+                    ? `\n\n🏷️ Tags: ${randomBook.tags.split(',').join(', ')}`
+                    : '';
+
+                const embed = new EmbedBuilder()
+                    .setColor(0xf39c12)
+                    .setTitle('🎲 Random Pick')
+                    .setDescription(
+                        `${statusEmoji[randomBook.status] || '📘'} **${randomBook.title}**${tagDisplay}`
+                    )
+                    .setFooter({
+                        text: tagFilter
+                            ? `Filtered by tag: ${tagFilter}`
+                            : 'Trust the algorithm 👀',
+                    })
+                    .setTimestamp();
+
+                return interaction.editReply({ embeds: [embed] });
+
+            } catch (err) {
+                console.error(err);
+                return interaction.editReply('❌ Failed to fetch random book.');
+            }
         }
 
         if (subcommand === 'stats') {
@@ -292,6 +329,51 @@ module.exports = {
             } catch (err) {
                 console.error(err);
                 return interaction.editReply('❌ Failed to calculate stats.');
+            }
+        }
+
+        if (subcommand === 'tags') {
+            await interaction.deferReply({ flags: 64 });
+
+            try {
+                const rows = await new Promise((resolve, reject) => {
+                    db.all(
+                        `SELECT tags FROM books WHERE user_id = ?`,
+                        [userId],
+                        (err, rows) => {
+                            if (err) reject(err);
+                            else resolve(rows);
+                        }
+                    );
+                });
+
+                const tagSet = new Set();
+
+                rows.forEach(row => {
+                    if (row.tags) {
+                        row.tags.split(',').forEach(tag => {
+                            tagSet.add(tag.trim());
+                        });
+                    }
+                });
+
+                if (!tagSet.size) {
+                    return interaction.editReply('🏷️ No tags found yet.');
+                }
+
+                const tagList = Array.from(tagSet).sort().join(', ');
+
+                const embed = new EmbedBuilder()
+                    .setColor(0x3498db)
+                    .setTitle('🏷️ Your Tags')
+                    .setDescription(tagList)
+                    .setTimestamp();
+
+                return interaction.editReply({ embeds: [embed] });
+
+            } catch (err) {
+                console.error(err);
+                return interaction.editReply('❌ Failed to fetch tags.');
             }
         }
     },
