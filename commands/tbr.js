@@ -93,7 +93,7 @@ module.exports = {
                     description += `\n${section.emoji}  **${section.label}**\n\n`;
 
                     books.forEach(book => {
-                        description += `      ${book.number}.  ${book.title}${book.tags}\n`;
+                        description += `${book.number}.  ${book.title}${book.tags}\n`;
                     });
 
                     description += '\n';
