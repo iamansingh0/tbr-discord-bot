@@ -23,4 +23,12 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
+client.on('error', console.error);
+
+process.on('unhandledRejection', error => {
+  console.error('Unhandled promise rejection:', error);
+});
+
+
+
 client.login(process.env.TOKEN);

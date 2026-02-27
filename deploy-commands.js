@@ -66,6 +66,11 @@ const commands = [
                     },
                 ],
             },
+            {
+                type: 1,
+                name: 'random',
+                description: 'Pick a random book from your TBR',
+            },
         ],
     },
 ];
