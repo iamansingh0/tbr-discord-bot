@@ -442,15 +442,16 @@ module.exports = {
 
             const number = Math.floor(Math.random() * (max - min + 1)) + min;
 
-            activeGames.set(interaction.channelId, {
+            activeGames.set(interaction.user.id, {
                 target: number,
                 min,
                 max,
-                mode
+                mode,
+                tries: 0
             });
 
             return interaction.reply(
-                `🎯 Guess a number between **${min}** and **${max}**!\nType your guesses in chat.`
+                `🎯 ${interaction.user} guess a number between **${min}** and **${max}**!\nType your guesses in chat.`
             );
         }
     },

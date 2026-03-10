@@ -77,18 +77,25 @@ client.on('messageCreate', async (message) => {
 
     console.log("MESSAGE:", message.content);
 
-    const game = activeGames.get(message.channelId);
+    const game = activeGames.get(message.author.id);
     if (!game) return;
 
     const guess = Number(message.content);
     if (isNaN(guess)) return;
 
+    game.tries++;
+
     if (guess === game.target) {
-        message.reply(`🎉 Correct! ${message.author} guessed **${guess}**!`);
-        activeGames.delete(message.channelId);
+        message.reply(
+            `🎉 ${message.author} guessed **${guess}** correctly in **${game.tries}** attempts!`
+        );
+        activeGames.delete(message.author.id);
     }
     else if (guess < game.target) {
         message.reply(`📉 ${guess} is low!`);
+    }
+    else if(guess > game.max) {
+        message.reply(`⚠️ ${guess} is above the max number!`);
     }
     else {
         message.reply(`📈 ${guess} is high!`);
