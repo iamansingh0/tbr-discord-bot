@@ -509,5 +509,25 @@ ${opponent}, do you accept the duel?\n`,
                 });
             }
         }
+
+        if (subcommand === "leaderboard") {
+
+            const entries = [...leaderboard.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            if (!entries.length) {
+                return interaction.reply("🏆 No duel wins yet.");
+            }
+
+            const text = entries
+                .map((e, i) => `${i + 1}. <@${e[0]}> — ${e[1]} wins`)
+                .join("\n");
+
+            return interaction.reply(
+                `🏆 **Duel Leaderboard**
+                ${text}`
+            );
+        }
     },
 };

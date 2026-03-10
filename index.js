@@ -2,7 +2,7 @@ require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const db = require('./database');
 const tbrCommand = require('./commands/tbr');
-const { activeGames, pendingDuels } = require('./games/gameManager');
+const { activeGames, pendingDuels, leaderboard } = require('./games/gameManager');
 
 const client = new Client({
     intents: [
@@ -50,6 +50,7 @@ client.on('interactionCreate', async (interaction) => {
                 min,
                 max,
                 finished: false,
+                history: [],
                 players: {
                     [challengerId]: { target: num1, tries: 0 },
                     [opponentId]: { target: num2, tries: 0 }
@@ -189,10 +190,17 @@ client.on('messageCreate', async (message) => {
     if (!player) return;
 
     player.tries++;
+    duelGame.history.push({
+        user: message.author.id,
+        guess
+    });
 
     if (guess === player.target) {
         if (duelGame.finished) return;
         duelGame.finished = true;
+
+        const wins = leaderboard.get(message.author.id) || 0;
+        leaderboard.set(message.author.id, wins + 1);
 
         const players = duelGame.players;
         const ids = Object.keys(players);
@@ -201,6 +209,9 @@ client.on('messageCreate', async (message) => {
 
         const p1Target = players[p1].target;
         const p2Target = players[p2].target;
+        const historyText = duelGame.history
+            .map(h => `<@${h.user}> → ${h.guess}`)
+            .join("\n");
 
         await message.reply(
             `🏆 **${message.author} wins the duel!**
@@ -208,6 +219,8 @@ client.on('messageCreate', async (message) => {
 🎯 Secret numbers:
 <@${p1}> → **${p1Target}**
 <@${p2}> → **${p2Target}**
+
+📜 Guess History: ${historyText}
 
 Attempts: **${player.tries}**`
         );

@@ -93,6 +93,11 @@ const commands = [
             },
             {
                 type: 1,
+                name: "leaderboard",
+                description: "Show duel leaderboard"
+            },
+            {
+                type: 1,
                 name: 'tags',
                 description: 'View all your used tags',
             },
