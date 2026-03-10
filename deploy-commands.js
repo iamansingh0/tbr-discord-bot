@@ -127,6 +127,12 @@ const commands = [
                             { name: 'single', value: 'single' },
                             { name: 'duel', value: 'duel' }
                         ]
+                    },
+                    {
+                        type: 6,
+                        name: "opponent",
+                        description: "Opponent for duel mode",
+                        required: false
                     }
                 ]
             }

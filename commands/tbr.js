@@ -1,6 +1,7 @@
 const db = require('../database');
 const { EmbedBuilder } = require('discord.js');
-const { activeGames } = require('../games/gameManager');
+const { activeGames, pendingDuels } = require('../games/gameManager');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 module.exports = {
     name: 'tbr',
@@ -435,24 +436,78 @@ module.exports = {
             const min = interaction.options.getInteger('min');
             const max = interaction.options.getInteger('max');
             const mode = interaction.options.getString('mode');
+            const opponent = interaction.options.getUser('opponent');
 
             if (min >= max) {
                 return interaction.reply('❌ Min must be smaller than max.');
             }
 
-            const number = Math.floor(Math.random() * (max - min + 1)) + min;
+            // SINGLE PLAYER MODE
+            if (mode === "single") {
 
-            activeGames.set(interaction.user.id, {
-                target: number,
-                min,
-                max,
-                mode,
-                tries: 0
-            });
+                const number = Math.floor(Math.random() * (max - min + 1)) + min;
 
-            return interaction.reply(
-                `🎯 ${interaction.user} guess a number between **${min}** and **${max}**!\nType your guesses in chat.`
-            );
+                activeGames.set(interaction.user.id, {
+                    mode: "single",
+                    target: number,
+                    min,
+                    max,
+                    tries: 0
+                });
+
+                return interaction.reply(
+                    `🎯 ${interaction.user} guess a number between **${min}** and **${max}**!
+Type your guesses in chat.`
+                );
+            }
+
+            // DUEL MODE
+            if (mode === "duel") {
+
+                if (!opponent) {
+                    return interaction.reply("⚔️ You must choose an opponent.");
+                }
+
+                if (opponent.bot) {
+                    return interaction.reply("❌ You cannot duel a bot.");
+                }
+
+                if (opponent.id === interaction.user.id) {
+                    return interaction.reply("❌ You cannot duel yourself.");
+                }
+
+                const acceptButton = new ButtonBuilder()
+                    .setCustomId(`duel_accept_${interaction.user.id}`)
+                    .setLabel("Accept Duel")
+                    .setStyle(ButtonStyle.Success);
+
+                const declineButton = new ButtonBuilder()
+                    .setCustomId(`duel_decline_${interaction.user.id}`)
+                    .setLabel("Decline")
+                    .setStyle(ButtonStyle.Danger);
+
+                const row = new ActionRowBuilder().addComponents(
+                    acceptButton,
+                    declineButton
+                );
+
+                pendingDuels.set(interaction.channelId, {
+                    challengerId: interaction.user.id,
+                    opponentId: opponent.id,
+                    min,
+                    max
+                });
+
+                return interaction.reply({
+                    content:
+                        `⚔️ **Duel Challenge!**
+
+${interaction.user} challenged ${opponent}
+
+${opponent}, do you accept the duel?\n`,
+                    components: [row]
+                });
+            }
         }
     },
 };
