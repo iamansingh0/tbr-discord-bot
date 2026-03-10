@@ -2,9 +2,14 @@ require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const db = require('./database');
 const tbrCommand = require('./commands/tbr');
+const { activeGames } = require('./games/gameManager');
 
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds],
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
+    ]
 });
 
 client.once('clientReady', () => {
@@ -64,6 +69,31 @@ client.on('interactionCreate', async (interaction) => {
     if (interaction.commandName === 'tbr') {
         return tbrCommand.execute(interaction);
     }
+});
+
+client.on('messageCreate', async (message) => {
+
+    if (message.author.bot) return;
+
+    console.log("MESSAGE:", message.content);
+
+    const game = activeGames.get(message.channelId);
+    if (!game) return;
+
+    const guess = Number(message.content);
+    if (isNaN(guess)) return;
+
+    if (guess === game.target) {
+        message.reply(`🎉 Correct! ${message.author} guessed **${guess}**!`);
+        activeGames.delete(message.channelId);
+    }
+    else if (guess < game.target) {
+        message.reply(`📉 ${guess} is low!`);
+    }
+    else {
+        message.reply(`📈 ${guess} is high!`);
+    }
+
 });
 
 client.on('error', console.error);

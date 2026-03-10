@@ -1,5 +1,6 @@
 const db = require('../database');
 const { EmbedBuilder } = require('discord.js');
+const { activeGames } = require('../games/gameManager');
 
 module.exports = {
     name: 'tbr',
@@ -18,7 +19,7 @@ module.exports = {
                 .filter(Boolean)
                 .join(',');
 
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply();
 
             db.run(
                 `INSERT INTO books (user_id, title, tags) VALUES (?, ?, ?)`,
@@ -35,7 +36,7 @@ module.exports = {
         }
 
         if (subcommand === 'list') {
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply();
 
             try {
                 const rows = await new Promise((resolve, reject) => {
@@ -117,7 +118,7 @@ module.exports = {
         if (subcommand === 'remove') {
             const number = interaction.options.getInteger('number');
 
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply();
 
             db.all(
                 `SELECT * FROM books WHERE user_id = ? ORDER BY created_at DESC`,
@@ -154,7 +155,7 @@ module.exports = {
             const number = interaction.options.getInteger('number');
             const state = interaction.options.getString('state');
 
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply();
 
             db.all(
                 `SELECT * FROM books WHERE user_id = ? ORDER BY created_at DESC`,
@@ -190,7 +191,7 @@ module.exports = {
         }
 
         if (subcommand === 'random') {
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply();
 
             try {
                 const tagFilter = interaction.options.getString('tag');
@@ -253,7 +254,7 @@ module.exports = {
         }
 
         if (subcommand === 'stats') {
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply();
 
             try {
                 const rows = await new Promise((resolve, reject) => {
@@ -344,7 +345,7 @@ module.exports = {
         }
 
         if (subcommand === 'tags') {
-            await interaction.deferReply({ flags: 64 });
+            await interaction.deferReply();
 
             try {
                 const rows = await new Promise((resolve, reject) => {
@@ -386,6 +387,71 @@ module.exports = {
                 console.error(err);
                 return interaction.editReply('❌ Failed to fetch tags.');
             }
+        }
+
+        if (subcommand === 'help') {
+
+            const embed = new EmbedBuilder()
+                .setColor(0x5865F2)
+                .setTitle('📚 TBR Bot Help')
+                .setDescription('Manage your reading list easily.')
+                .addFields(
+                    {
+                        name: '📖 Add Book',
+                        value: '`/tbr add title:<book> tags:<optional>`\nAdd a book to your TBR list.',
+                    },
+                    {
+                        name: '📋 View List',
+                        value: '`/tbr list`\nSee your organized TBR list.',
+                    },
+                    {
+                        name: '🎲 Random Pick',
+                        value: '`/tbr random`\nPick a random book.\n`/tbr random tag:<tag>` filters by tag.',
+                    },
+                    {
+                        name: '📊 Stats',
+                        value: '`/tbr stats`\nView your reading statistics.',
+                    },
+                    {
+                        name: '🏷️ Tags',
+                        value: '`/tbr tags`\nSee all tags you’ve used.',
+                    },
+                    {
+                        name: '❓ Help',
+                        value: '`/tbr help`\nShow this help menu.',
+                    }
+                )
+                .setFooter({ text: 'Happy reading 📚' })
+                .setTimestamp();
+
+            return interaction.reply({
+                embeds: [embed],
+
+            });
+        }
+
+        if (subcommand === 'guess') {
+
+            const min = interaction.options.getInteger('min');
+            const max = interaction.options.getInteger('max');
+            const mode = interaction.options.getString('mode');
+
+            if (min >= max) {
+                return interaction.reply('❌ Min must be smaller than max.');
+            }
+
+            const number = Math.floor(Math.random() * (max - min + 1)) + min;
+
+            activeGames.set(interaction.channelId, {
+                target: number,
+                min,
+                max,
+                mode
+            });
+
+            return interaction.reply(
+                `🎯 Guess a number between **${min}** and **${max}**!\nType your guesses in chat.`
+            );
         }
     },
 };

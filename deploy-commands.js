@@ -96,6 +96,40 @@ const commands = [
                 name: 'tags',
                 description: 'View all your used tags',
             },
+            {
+                type: 1,
+                name: 'help',
+                description: 'Show all available TBR bot commands',
+            },
+            {
+                type: 1,
+                name: 'guess',
+                description: 'Start a guess the number game',
+                options: [
+                    {
+                        type: 4,
+                        name: 'min',
+                        description: 'Lowest number',
+                        required: true
+                    },
+                    {
+                        type: 4,
+                        name: 'max',
+                        description: 'Highest number',
+                        required: true
+                    },
+                    {
+                        type: 3,
+                        name: 'mode',
+                        description: 'Game mode',
+                        required: true,
+                        choices: [
+                            { name: 'single', value: 'single' },
+                            { name: 'duel', value: 'duel' }
+                        ]
+                    }
+                ]
+            }
         ],
     },
 ];
